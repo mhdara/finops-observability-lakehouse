@@ -52,11 +52,15 @@ This lakehouse solution processes and analyzes cloud billing data using the [Fin
 
 ```
 finops-observability-lakehouse/
+├── .github/workflows/
+│   └── ci.yml                            # CI/CD automation
 ├── Notebooks/
 │   ├── 00_schema_exploration.ipynb       # Data discovery and profiling
 │   ├── 01_bronze_transformations.ipynb   # Raw data ingestion
 │   ├── 03_silver_transformations.ipynb   # Data cleansing
-│   └── 04_gold_transformations.ipynb     # Business aggregations
+│   ├── 04_gold_transformations.ipynb     # Business aggregations
+│   └── 05_executive_dashboard.ipynb      # Visual analytics and insights
+├── .gitignore
 └── README.md
 ```
 
@@ -148,12 +152,30 @@ ORDER BY charge_year_month DESC
 LIMIT 12;
 ```
 
+## 📊 Executive Dashboard
+
+The `05_executive_dashboard.ipynb` notebook provides visual analytics using matplotlib and seaborn:
+
+**Key Visualizations:**
+* **Monthly Cost Trends** - Line charts showing spending over time and MoM changes
+* **Service Family Distribution** - Pie and bar charts for cost breakdown by category
+* **Top 10 Cost Drivers** - Horizontal bar chart with optimization opportunity color coding
+* **Commitment Effectiveness** - Comparison of commitment vs on-demand spend and coverage rates
+* **Daily Cost Patterns** - Time series with moving averages and distribution histograms
+
+Each visualization includes:
+- Clean, publication-ready formatting
+- Value labels and annotations
+- Statistical summaries (mean, median, totals)
+- Actionable insights and recommendations
+
 ## 🔄 Data Pipeline Workflow
 
 1. **Ingestion** (Bronze): Raw FOCUS billing files → Bronze Delta tables
 2. **Transformation** (Silver): Data cleansing, type conversion, enrichment
 3. **Aggregation** (Gold): Business metrics and KPIs
-4. **Consumption**: BI tools, dashboards, and ad-hoc analysis
+4. **Visualization**: Executive dashboard with matplotlib/seaborn charts
+5. **Consumption**: BI tools, dashboards, and ad-hoc analysis
 
 ## 📈 Business Impact
 

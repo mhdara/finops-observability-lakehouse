@@ -155,77 +155,63 @@ if len(high_opp) > 0:
 # DBTITLE 1,4. Commitment Discount Effectiveness
 # Commitment discount effectiveness - track RI/Savings Plan value
 
-# Calculate commitment vs on-demand spend
-commitment_summary = spark.sql("""
+commitment_df = spark.sql("""
     SELECT 
-        CASE 
-            WHEN CommitmentDiscountType IS NULL THEN 'On-Demand'
-            ELSE 'Commitment'
-        END as spend_type,
-        SUM(total_cost) as total_spend,
-        SUM(total_savings_realized) as savings,
-        AVG(effective_savings_rate) as avg_savings_rate
+        commitment_type,
+        SUM(total_commitment_cost) as commitment_spend,
+        SUM(total_on_demand_cost) as on_demand_spend,
+        AVG(commitment_coverage_pct) as avg_coverage
     FROM finops_catalog.focus_billing_schema.gold_commitment_effectiveness
-    GROUP BY spend_type
+    WHERE commitment_type IS NOT NULL
+    GROUP BY commitment_type
 """).toPandas()
 
-# Get breakdown by commitment type for those with commitments
-commitment_types = spark.sql("""
-    SELECT 
-        CommitmentDiscountType,
-        SUM(total_cost) as commitment_spend,
-        SUM(total_savings_realized) as savings,
-        AVG(effective_savings_rate) as savings_rate
-    FROM finops_catalog.focus_billing_schema.gold_commitment_effectiveness
-    WHERE CommitmentDiscountType IS NOT NULL
-    GROUP BY CommitmentDiscountType
-""").toPandas()
-
-if len(commitment_summary) > 0:
+if len(commitment_df) > 0:
     plt.figure(figsize=(14, 6))
     
-    # Overall commitment vs on-demand
+    # Commitment vs On-Demand comparison
     plt.subplot(1, 2, 1)
-    colors = ['#2ca02c' if x == 'Commitment' else '#d62728' for x in commitment_summary['spend_type']]
-    plt.bar(commitment_summary['spend_type'], commitment_summary['total_spend'], color=colors, alpha=0.8)
-    plt.ylabel('Total Spend ($)')
-    plt.title('Overall Spend: Commitment vs On-Demand', fontsize=14, fontweight='bold')
+    x = range(len(commitment_df))
+    width = 0.35
+    plt.bar([i - width/2 for i in x], commitment_df['commitment_spend'], 
+            width, label='Commitment', color='#2ca02c', alpha=0.8)
+    plt.bar([i + width/2 for i in x], commitment_df['on_demand_spend'], 
+            width, label='On-Demand', color='#d62728', alpha=0.8)
+    plt.xlabel('Commitment Type')
+    plt.ylabel('Cost ($)')
+    plt.title('Commitment vs On-Demand Spend', fontsize=14, fontweight='bold')
+    plt.xticks(x, commitment_df['commitment_type'], rotation=45, ha='right')
+    plt.legend()
+    plt.grid(True, alpha=0.3, axis='y')
+    
+    # Coverage percentage
+    plt.subplot(1, 2, 2)
+    plt.bar(commitment_df['commitment_type'], commitment_df['avg_coverage'], 
+            color='#1f77b4', alpha=0.8)
+    plt.xlabel('Commitment Type')
+    plt.ylabel('Average Coverage %')
+    plt.title('Commitment Coverage Rate', fontsize=14, fontweight='bold')
+    plt.xticks(rotation=45, ha='right')
+    plt.ylim(0, 100)
+    plt.axhline(y=70, color='green', linestyle='--', alpha=0.5, label='Target 70%')
+    plt.legend()
     plt.grid(True, alpha=0.3, axis='y')
     
     # Add value labels
-    for i, (spend_type, spend) in enumerate(zip(commitment_summary['spend_type'], commitment_summary['total_spend'])):
-        plt.text(i, spend + 1, f'${spend:.2f}', ha='center', va='bottom', fontsize=10)
-    
-    # Savings by commitment type (if any)
-    plt.subplot(1, 2, 2)
-    if len(commitment_types) > 0:
-        plt.bar(commitment_types['CommitmentDiscountType'], commitment_types['savings'], 
-                color='#1f77b4', alpha=0.8)
-        plt.xlabel('Commitment Type')
-        plt.ylabel('Total Savings ($)')
-        plt.title('Savings by Commitment Type', fontsize=14, fontweight='bold')
-        plt.xticks(rotation=45, ha='right')
-        plt.grid(True, alpha=0.3, axis='y')
-        
-        # Add value labels
-        for i, (ctype, savings) in enumerate(zip(commitment_types['CommitmentDiscountType'], commitment_types['savings'])):
-            plt.text(i, savings, f'${savings:.2f}', ha='center', va='bottom', fontsize=9)
-    else:
-        plt.text(0.5, 0.5, 'No commitment discounts\navailable in data', 
-                ha='center', va='center', fontsize=12, transform=plt.gca().transAxes)
-        plt.title('Savings by Commitment Type', fontsize=14, fontweight='bold')
+    for i, coverage in enumerate(commitment_df['avg_coverage']):
+        plt.text(i, coverage + 2, f'{coverage:.1f}%', ha='center', fontsize=9)
     
     plt.tight_layout()
     plt.show()
     
-    total_savings = commitment_summary['savings'].sum()
-    total_spend = commitment_summary['total_spend'].sum()
+    total_commitment = commitment_df['commitment_spend'].sum()
+    total_on_demand = commitment_df['on_demand_spend'].sum()
+    savings_pct = ((total_on_demand - total_commitment) / total_on_demand * 100) if total_on_demand > 0 else 0
     
     print(f"\nCommitment effectiveness:")
-    print(f"  Total spend: ${total_spend:.2f}")
-    print(f"  Total savings realized: ${total_savings:.2f}")
-    if len(commitment_types) > 0:
-        print(f"  Commitment discount types: {len(commitment_types)}")
+    print(f"  Total commitment spend: ${total_commitment:.2f}")
+    print(f"  Equivalent on-demand cost: ${total_on_demand:.2f}")
+    print(f"  Estimated savings: {savings_pct:.1f}%")
 else:
     print("No commitment discount data available to visualize.")
 

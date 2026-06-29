@@ -11,7 +11,7 @@ A data engineering solution for cloud cost analytics, transforming raw billing d
 
 This project processes cloud billing data using the [FinOps Open Cost and Usage Specification (FOCUS)](https://focus.finops.org/). It helps organizations track spending patterns, identify optimization opportunities, and monitor budget performance across services and resources.
 
-**Data Source:** Sample data from the [FOCUS Sample Data Repository](https://github.com/FinOps-Open-Cost-and-Usage-Spec/FOCUS-Sample-Data/tree/main/FOCUS-1.0) (FOCUS 1.0 specification).
+**Data Source:** [FOCUS Sample Data](https://github.com/FinOps-Open-Cost-and-Usage-Spec/FOCUS-Sample-Data/tree/main/FOCUS-1.0) (FOCUS 1.0 specification)
 
 ## Architecture
 
@@ -57,37 +57,17 @@ finops-observability-lakehouse/
 - **Unity Catalog** - Data governance
 - **Python** (matplotlib, seaborn, pandas) - Visualizations
 
-## Sample Queries
+## Sample Usage
 
-Find top spending services:
-```sql
-SELECT ServiceName, SUM(total_monthly_cost) as total_cost
-FROM finops_catalog.focus_billing_schema.gold_monthly_cost_summary
-WHERE charge_year_month = DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM')
-GROUP BY ServiceName
-ORDER BY total_cost DESC
-LIMIT 5;
-```
-
-Identify optimization opportunities:
+Find resources with high optimization potential:
 ```sql
 SELECT ResourceName, ServiceName, total_resource_cost, optimization_opportunity
 FROM finops_catalog.focus_billing_schema.gold_resource_cost_ranking
-WHERE optimization_opportunity IN ('High', 'Medium')
-ORDER BY total_resource_cost DESC
-LIMIT 20;
+WHERE optimization_opportunity = 'High'
+ORDER BY total_resource_cost DESC;
 ```
 
-## Visualizations
-
-The `05_executive_dashboard.ipynb` notebook includes:
-- Monthly cost trends and MoM changes
-- Service family distribution (pie/bar charts)
-- Top 10 cost drivers with optimization flags
-- Commitment discount effectiveness
-- Daily cost patterns with moving averages
-
-To view the dashboard, run the notebook cells in Databricks. Charts render inline with matplotlib.
+The `05_executive_dashboard.ipynb` notebook provides visual analytics: monthly trends, service distribution, top cost drivers, commitment effectiveness, and daily patterns.
 
 ## CI/CD
 

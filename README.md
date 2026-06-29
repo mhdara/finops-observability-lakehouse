@@ -11,6 +11,8 @@ A data engineering solution for cloud cost analytics, transforming raw billing d
 
 This project processes cloud billing data using the [FinOps Open Cost and Usage Specification (FOCUS)](https://focus.finops.org/). It helps organizations track spending patterns, identify optimization opportunities, and monitor budget performance across services and resources.
 
+**Data Source:** Sample data from the [FOCUS Sample Data Repository](https://github.com/FinOps-Open-Cost-and-Usage-Spec/FOCUS-Sample-Data/tree/main/FOCUS-1.0) (FOCUS 1.0 specification).
+
 ## Architecture
 
 The pipeline implements a three-layer medallion architecture:

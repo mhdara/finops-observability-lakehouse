@@ -49,23 +49,6 @@ finops-observability-lakehouse/
 └── README.md
 ```
 
-## Tech Stack
-
-- **Databricks** - Unified analytics platform
-- **PySpark** - Distributed data processing
-- **Delta Lake** - ACID transactions and time travel
-- **Unity Catalog** - Data governance
-- **Python** (matplotlib, seaborn, pandas) - Visualizations
-
-## Sample Usage
-
-Find resources with high optimization potential:
-```sql
-SELECT ResourceName, ServiceName, total_resource_cost, optimization_opportunity
-FROM finops_catalog.focus_billing_schema.gold_resource_cost_ranking
-WHERE optimization_opportunity = 'High'
-ORDER BY total_resource_cost DESC;
-```
 
 The `05_executive_dashboard.ipynb` notebook provides visual analytics: monthly trends, service distribution, top cost drivers, commitment effectiveness, and daily patterns.
 
@@ -91,10 +74,6 @@ The workflow runs on every push and pull request.
 - Partitioning by year/month for time-based queries
 - Data quality monitoring and alerting
 - Slowly changing dimensions for service renames
-
-## License
-
-MIT License - open source portfolio project.
 
 ---
 

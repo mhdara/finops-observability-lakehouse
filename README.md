@@ -1,121 +1,65 @@
-# FinOps Observability Lakehouse 💰📊
+# FinOps Observability Lakehouse
 
 ![CI Status](https://github.com/mhdara/finops-observability-lakehouse/workflows/CI%20-%20Data%20Quality%20Checks/badge.svg)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PySpark](https://img.shields.io/badge/PySpark-3.5-orange.svg)](https://spark.apache.org/)
 [![Databricks](https://img.shields.io/badge/Databricks-Delta%20Lake-red.svg)](https://www.databricks.com/)
 
-A production-ready cloud cost analytics platform built on Databricks, implementing the medallion architecture (Bronze → Silver → Gold) for FOCUS billing data. This project transforms raw cloud billing data into actionable insights for FinOps teams.
+A data engineering solution for cloud cost analytics, transforming raw billing data into actionable insights using the medallion architecture pattern.
 
-## 🎯 Project Overview
+## Overview
 
-This lakehouse solution processes and analyzes cloud billing data using the [FinOps Open Cost and Usage Specification (FOCUS)](https://focus.finops.org/), enabling organizations to:
+This project processes cloud billing data using the [FinOps Open Cost and Usage Specification (FOCUS)](https://focus.finops.org/). It helps organizations track spending patterns, identify optimization opportunities, and monitor budget performance across services and resources.
 
-* **Track spending patterns** across services, regions, and resources
-* **Identify cost optimization opportunities** through commitment discount analysis
-* **Monitor budget performance** with month-over-month comparisons
-* **Rank top cost drivers** for targeted optimization efforts
-* **Measure savings effectiveness** from Reserved Instances and Savings Plans
+## Architecture
 
-## 🏗️ Architecture
-
-### Medallion Architecture
+The pipeline implements a three-layer medallion architecture:
 
 ```
 ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
 │   Bronze    │ ───▶ │   Silver    │ ───▶ │    Gold     │
 │  Raw Data   │      │  Cleaned    │      │ Aggregated  │
 └─────────────┘      └─────────────┘      └─────────────┘
-     Delta                Delta                Delta
-    Tables              Tables               Tables
 ```
 
-**Bronze Layer**: Raw FOCUS billing data ingestion
-* Direct ingestion from cloud provider billing exports
-* Schema validation and data quality checks
-* Preserves complete audit trail
+**Bronze** ingests raw CSV billing data with audit metadata for lineage tracking.
 
-**Silver Layer**: Data cleansing and standardization
-* Type conversions and null handling
-* Standardized date/time formats
-* Enriched with calculated fields (discounts, effective rates)
-* Deduplicated and validated
+**Silver** handles data quality - type conversions, null handling, deduplication, and calculated fields like discount amounts and effective rates.
 
-**Gold Layer**: Business-ready analytics tables
-* `gold_daily_cost_by_service` - Daily spend monitoring by service
-* `gold_monthly_cost_summary` - Monthly trends and MoM comparisons
-* `gold_resource_cost_ranking` - Top cost drivers identification
-* `gold_commitment_effectiveness` - RI/Savings Plan utilization
-* `gold_service_family_distribution` - High-level spend categories
+**Gold** provides five business-ready tables:
+- `gold_daily_cost_by_service` - Daily spend monitoring
+- `gold_monthly_cost_summary` - Monthly trends with MoM comparisons
+- `gold_resource_cost_ranking` - Top cost drivers and optimization opportunities
+- `gold_commitment_effectiveness` - Reserved Instance and Savings Plan utilization
+- `gold_service_family_distribution` - High-level spend categories
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 finops-observability-lakehouse/
-├── .github/workflows/
-│   └── ci.yml                            # CI/CD automation
+├── .github/workflows/ci.yml          # CI/CD validation
 ├── Notebooks/
-│   ├── 00_schema_exploration.ipynb       # Data discovery and profiling
-│   ├── 01_bronze_transformations.ipynb   # Raw data ingestion
-│   ├── 03_silver_transformations.ipynb   # Data cleansing
-│   ├── 04_gold_transformations.ipynb     # Business aggregations
-│   └── 05_executive_dashboard.ipynb      # Visual analytics and insights
-├── .gitignore
+│   ├── 00_schema_exploration.ipynb   # Data profiling
+│   ├── 01_bronze_transformations.ipynb
+│   ├── 03_silver_transformations.ipynb
+│   ├── 04_gold_transformations.ipynb
+│   └── 05_executive_dashboard.ipynb  # Visualizations
 └── README.md
 ```
 
-## 🚀 Key Features
+## Tech Stack
 
-### Cost Analytics
-* **Daily & Monthly Aggregations**: Pre-computed metrics for fast dashboard queries
-* **Commitment Discount Tracking**: Monitor RI/Savings Plan coverage and savings
-* **Resource-Level Analysis**: Identify individual resources driving costs
-* **Service Family Categorization**: Group services into logical cost categories
+- **Databricks** - Unified analytics platform
+- **PySpark** - Distributed data processing
+- **Delta Lake** - ACID transactions and time travel
+- **Unity Catalog** - Data governance
+- **Python** (matplotlib, seaborn, pandas) - Visualizations
 
-### Data Quality
-* **Schema Validation**: Ensures FOCUS specification compliance
-* **Type Safety**: Proper handling of numeric, date, and string fields
-* **Null Handling**: Graceful handling of missing data
-* **Deduplication**: Prevents double-counting of charges
+## Sample Queries
 
-### Performance Optimization
-* **Delta Lake Format**: ACID transactions and time travel
-* **Partitioning Strategy**: Optimized for date-based queries
-* **Aggregation Layer**: Pre-computed metrics reduce query time
-* **Incremental Processing**: Efficient updates for new billing data
-
-## 💡 Use Cases
-
-### Executive Dashboards
-Use `gold_monthly_cost_summary` and `gold_service_family_distribution` for high-level spending overviews and board presentations.
-
-### Cost Optimization
-Leverage `gold_resource_cost_ranking` to identify:
-* Top 10 most expensive resources
-* Resources with optimization_opportunity flags
-* On-demand spend that could benefit from commitments
-
-### FinOps Operations
-* **Budget Monitoring**: Track month-over-month changes and variance
-* **Anomaly Detection**: Daily spend patterns for unusual activity
-* **Commitment Planning**: Analyze coverage gaps and savings potential
-* **Chargeback/Showback**: Resource-level attribution for teams
-
-## 🛠️ Technologies Used
-
-* **Databricks** - Unified analytics platform
-* **Apache Spark** - Distributed data processing (PySpark)
-* **Delta Lake** - ACID transactions and data versioning
-* **Unity Catalog** - Data governance and lineage
-* **Python** - Data transformation logic
-
-## 📊 Sample Queries
-
-### Top 5 Most Expensive Services This Month
+Find top spending services:
 ```sql
-SELECT 
-    ServiceName,
-    SUM(total_monthly_cost) as total_cost
+SELECT ServiceName, SUM(total_monthly_cost) as total_cost
 FROM finops_catalog.focus_billing_schema.gold_monthly_cost_summary
 WHERE charge_year_month = DATE_FORMAT(CURRENT_DATE(), 'yyyy-MM')
 GROUP BY ServiceName
@@ -123,151 +67,53 @@ ORDER BY total_cost DESC
 LIMIT 5;
 ```
 
-### Resources with High Optimization Potential
+Identify optimization opportunities:
 ```sql
-SELECT 
-    ResourceName,
-    ServiceName,
-    total_resource_cost,
-    on_demand_cost,
-    commitment_coverage_pct,
-    optimization_opportunity
+SELECT ResourceName, ServiceName, total_resource_cost, optimization_opportunity
 FROM finops_catalog.focus_billing_schema.gold_resource_cost_ranking
 WHERE optimization_opportunity IN ('High', 'Medium')
 ORDER BY total_resource_cost DESC
 LIMIT 20;
 ```
 
-### Month-over-Month Cost Trend
-```sql
-SELECT 
-    charge_year_month,
-    total_monthly_cost,
-    previous_month_cost,
-    month_over_month_change_pct,
-    total_monthly_savings
-FROM finops_catalog.focus_billing_schema.gold_monthly_cost_summary
-WHERE BillingAccountName = 'Production Account'
-ORDER BY charge_year_month DESC
-LIMIT 12;
-```
+## Visualizations
 
-## 📊 Executive Dashboard
+The `05_executive_dashboard.ipynb` notebook includes:
+- Monthly cost trends and MoM changes
+- Service family distribution (pie/bar charts)
+- Top 10 cost drivers with optimization flags
+- Commitment discount effectiveness
+- Daily cost patterns with moving averages
 
-The `05_executive_dashboard.ipynb` notebook provides visual analytics using matplotlib and seaborn:
+To view the dashboard, run the notebook cells in Databricks. Charts render inline with matplotlib.
 
-**Key Visualizations:**
-* **Monthly Cost Trends** - Line charts showing spending over time and MoM changes
-* **Service Family Distribution** - Pie and bar charts for cost breakdown by category
-* **Top 10 Cost Drivers** - Horizontal bar chart with optimization opportunity color coding
-* **Commitment Effectiveness** - Comparison of commitment vs on-demand spend and coverage rates
-* **Daily Cost Patterns** - Time series with moving averages and distribution histograms
+## CI/CD
 
-Each visualization includes:
-- Clean, publication-ready formatting
-- Value labels and annotations
-- Statistical summaries (mean, median, totals)
-- Actionable insights and recommendations
+GitHub Actions automatically validates:
+- Notebook structure (valid Jupyter format)
+- Python syntax in all cells
+- Documentation completeness
 
-## 🔄 Data Pipeline Workflow
+The workflow runs on every push and pull request.
 
-1. **Ingestion** (Bronze): Raw FOCUS billing files → Bronze Delta tables
-2. **Transformation** (Silver): Data cleansing, type conversion, enrichment
-3. **Aggregation** (Gold): Business metrics and KPIs
-4. **Visualization**: Executive dashboard with matplotlib/seaborn charts
-5. **Consumption**: BI tools, dashboards, and ad-hoc analysis
+## What I Learned
 
-## 📈 Business Impact
+**Challenges solved:**
+- Handling "NULL" string literals in CSV data (not actual nulls)
+- Window function edge cases for month-over-month calculations
+- Defensive coding with `try_cast()` for type safety
+- Quality scoring vs. rejecting bad records
 
-* **Faster Insights**: Pre-aggregated gold tables reduce query time from minutes to seconds
-* **Cost Visibility**: Clear attribution of spending across services and resources
-* **Optimization Tracking**: Quantifiable savings from commitment discounts
-* **Data-Driven Decisions**: Reliable metrics for cloud cost management
+**Production considerations:**
+- Full refresh works for 10K rows; at scale I'd use `MERGE INTO` for incremental loads
+- Partitioning by year/month for time-based queries
+- Data quality monitoring and alerting
+- Slowly changing dimensions for service renames
 
-## 🎓 Learning Outcomes
+## License
 
-This project demonstrates:
-* **Data Engineering**: Building scalable ETL pipelines with PySpark
-* **Data Architecture**: Implementing medallion architecture patterns
-* **FinOps Domain**: Understanding cloud billing and cost optimization
-* **Best Practices**: Data quality, performance optimization, and governance
-* **Analytics Engineering**: Creating business-ready data models
-
-## 🔄 CI/CD & Production Deployment
-
-### Continuous Integration
-
-This project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically validates:
-* **Notebook structure**: Ensures all notebooks are valid Jupyter format
-* **Python syntax**: Checks code syntax in all notebook cells
-* **Documentation**: Verifies README and essential files exist
-
-The CI pipeline runs on every push and pull request to maintain code quality.
-
-### Production Deployment Strategy
-
-For production deployment, this project would use:
-
-**Environment Management**
-```
-dev/       → Development workspace for testing
-staging/   → Pre-production validation
-prod/      → Production deployment
-```
-
-**Databricks Asset Bundles (DABs)**
-```yaml
-# databricks.yml
-environments:
-  prod:
-    workflows:
-      - name: finops_daily_pipeline
-        tasks:
-          - notebook_task:
-              notebook_path: /Notebooks/01_bronze_transformations
-          - notebook_task:
-              notebook_path: /Notebooks/03_silver_transformations
-              depends_on: [bronze]
-          - notebook_task:
-              notebook_path: /Notebooks/04_gold_transformations
-              depends_on: [silver]
-```
-
-**Orchestration & Scheduling**
-* Daily scheduled runs using Databricks Jobs
-* Incremental data processing for cost efficiency
-* Email/Slack alerts on pipeline failures
-* SLA monitoring for data freshness
-
-**Data Quality Monitoring**
-* Row count validation between layers
-* Cost total reconciliation checks
-* Schema drift detection
-* Data freshness alerts
-
-**Security & Governance**
-* Unity Catalog for access control
-* Column-level encryption for sensitive data
-* Audit logging for compliance
-* Row-level security for multi-tenant access
-
-## 📝 Future Enhancements
-
-* [ ] Real-time streaming ingestion for hourly cost updates
-* [ ] Anomaly detection using machine learning
-* [ ] Forecasting models for budget planning
-* [ ] Integration with cloud provider APIs for resource metadata
-* [ ] Automated alerting for budget thresholds
-* [ ] Cost allocation tags and chargeback automation
-
-## 🤝 Contributing
-
-This is a portfolio project, but feedback and suggestions are welcome!
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
+MIT License - open source portfolio project.
 
 ---
 
-**Built with** ❤️ **using Databricks and Apache Spark**
+**Built with Databricks and Apache Spark**
